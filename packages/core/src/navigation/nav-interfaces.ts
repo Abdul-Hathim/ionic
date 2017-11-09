@@ -6,6 +6,7 @@ import {
   AnimationOptions,
   Config
 } from '..';
+import { RouterEntry } from '../components/router/route';
 
 export interface FrameworkDelegate {
   attachViewToDom(navController: Nav, enteringView: ViewController): Promise<any>;
@@ -24,6 +25,7 @@ export interface NavContainer {
 
 export interface Nav {
   id?: number;
+  routes?: Map<string, RouterEntry>;
   element?: HTMLElement;
   views?: ViewController[];
   transitioning?: boolean;
@@ -38,6 +40,7 @@ export interface Nav {
   childNavs?: Nav[]; // TODO - make nav container
   root?: any;
   navInit?: EventEmitter;
+  ionNavChanged?: EventEmitter;
   config?: Config;
   mode?: string;
 

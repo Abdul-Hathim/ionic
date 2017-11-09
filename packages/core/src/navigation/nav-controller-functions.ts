@@ -224,7 +224,8 @@ export function nextTransaction(nav: Nav): Promise<any> {
     return attachViewToDom(nav, enteringView, topTransaction.delegate);
   }).then(() => {
     return loadViewAndTransition(nav, enteringView, leavingView, topTransaction);
-  }).then((result: NavResult) => {
+    }).then((result: NavResult) => {
+      nav.ionNavChanged.emit({ isPop: false });
     return successfullyTransitioned(result, topTransaction);
   }).catch((err: Error) => {
     return transitionFailed(err, topTransaction);

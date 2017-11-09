@@ -4,6 +4,8 @@ import { ComponentDataPair, FrameworkDelegate, Nav, NavController, NavOptions, V
 
 import { getActiveImpl, getFirstView, getPreviousImpl, getViews, init } from '../../navigation/nav-utils';
 import { isReady } from '../../utils/helpers';
+import { NavState } from '../../index';
+import { RouterEntry } from '../router/route';
 
 @Component({
   tag: 'ion-nav',
@@ -13,7 +15,10 @@ export class IonNav implements Nav {
 
   @Element() element: HTMLElement;
   @Event() navInit: EventEmitter;
+  @Event() ionNavChanged: EventEmitter;
 
+  init = false;
+  routes: Map<string, RouterEntry> = new Map();
   parent: Nav;
   views: ViewController[];
   transitioning?: boolean;
@@ -34,7 +39,21 @@ export class IonNav implements Nav {
     init(this);
   }
 
+  @Listen('ionRouteAdded')
+  routeAdded(ev: CustomEvent) {
+    this.addRoute(ev.detail);
+  }
+
+  @Listen('ionRouteRemoved')
+  routeRemoved(ev: CustomEvent) {
+    this.removeRoute(ev.detail);
+  }
+
   componentDidLoad() {
+    if (this.init) {
+      return;
+    }
+    this.init = true;
     componentDidLoadImpl(this);
   }
 
@@ -127,15 +146,54 @@ export class IonNav implements Nav {
     navInitializedImpl(this, event);
   }
 
+  @Method()
+  addRoute(route: RouterEntry) {
+    this.routes.set(route.path, route);
+  }
+
+  @Method()
+  removeRoute(route: RouterEntry) {
+    this.routes.delete(route.path);
+  }
+
+  @Method()
+  getState(): NavState {
+    return getState(this);
+  }
+
+  @Method()
+  setSegment(segment: string): Promise<NavState> {
+    const route = this.routes.get(segment);
+    if (route) {
+      return this.setRoot(route.component).then(() => {
+        return this.getState();
+      });
+    } else {
+      return Promise.reject('router not found');
+    }
+  }
+
 
   protected render() {
     return <slot></slot>;
   }
 }
 
+export function getState(nav: Nav): NavState {
+  const active = getActiveImpl(nav);
+  return {
+    segment: active.component,
+    focusNode: active.element
+  };
+}
+
 export function componentDidLoadImpl(nav: Nav) {
   nav.navInit.emit(nav);
-  if (nav.root) {
+  const entry = nav.routes.get('');
+  if (entry && entry.component) {
+    console.log(entry.component);
+    nav.setRoot(entry.component);
+  } else if (nav.root) {
     nav.setRoot(nav.root);
   }
 }

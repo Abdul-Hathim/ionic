@@ -18,6 +18,8 @@ import { PickerController } from './components/picker-controller/picker-controll
 import { Popover, PopoverEvent, PopoverOptions } from './components/popover/popover';
 import { PopoverController } from './components/popover-controller/popover-controller';
 
+import { NavElement, NavState } from './components/router/router-controller';
+
 import { Scroll, ScrollCallback, ScrollDetail } from './components/scroll/scroll';
 import { Segment } from './components/segment/segment';
 import { SegmentButton, SegmentButtonEvent } from './components/segment-button/segment-button';
@@ -89,6 +91,8 @@ export {
   ModalController,
   ModalOptions,
   ModalEvent,
+  NavElement,
+  NavState,
   Picker,
   PickerButton,
   PickerColumn,

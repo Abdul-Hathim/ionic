@@ -1,4 +1,10 @@
-import { Component, Prop, State } from '@stencil/core';
+import { Component, Event, EventEmitter, Prop } from '@stencil/core';
+
+export interface RouterEntry {
+  path?: string;
+  component: string;
+  props?: any;
+}
 
 /**
   * @name Route
@@ -8,46 +14,24 @@ import { Component, Prop, State } from '@stencil/core';
 @Component({
   tag: 'ion-route'
 })
-export class Route {
-  @Prop() url: string;
+export class Route implements RouterEntry {
 
+  @Prop() path: string;
   @Prop() component: string;
+  @Prop() props: any = {};
 
-  @Prop() componentProps: any = {};
+  @Event() ionRouteAdded: EventEmitter<RouterEntry>;
+  @Event() ionRouteRemoved: EventEmitter<string>;
 
-  // The instance of the router
-  @Prop() router: any;
-
-  // @Prop() match: any;
-  @State() match: any = {};
-
-  protected ionViewWillLoad() {
-/*
-    this.routerInstance = document.querySelector(this.router)
-
-    // HACK
-    this.routerInstance.addEventListener('ionRouterNavigation', (e) => {
-      this.match = e.detail;
-    })
-*/
+  protected ionViewDidLoad() {
+    this.ionRouteAdded.emit({
+      path: this.path,
+      component: this.component,
+      props: this.props
+    });
   }
 
-  protected render() {
-/*
-    this.match.url = this.routerInstance.routeMatch.url;
-    const match = this.match
-    const ChildComponent = this.component
-
-    console.log('Does match match?', match.url, this.url)
-
-    //return <p></p>;
-
-    if(match.url == this.url) {
-      console.log(`  <ion-route> Rendering route ${this.url}`, router, match);
-      return (<ChildComponent props={this.componentProps} />);
-    } else {
-      return null;
-    }
-*/
+  protected ionViewDidUnload() {
+    this.ionRouteRemoved.emit(this.path);
   }
 }

@@ -1,5 +1,5 @@
 import { Component, Element, Event, EventEmitter, Listen, Method, Prop, State } from '@stencil/core';
-import { Config, HTMLIonTabElement } from '../../index';
+import { Config, HTMLIonTabElement, NavElement, NavState } from '../../index';
 
 export interface NavOptions { }
 // import { isPresent } from '../../utils/helpers';
@@ -186,6 +186,7 @@ export class Tabs {
    * @output {any} Emitted when the tab changes.
    */
   @Event() ionChange: EventEmitter;
+  @Event() ionNavChanged: EventEmitter;
 
   protected ionViewDidLoad() {
     this.loadConfig('tabsPlacement', 'bottom');
@@ -251,10 +252,10 @@ export class Tabs {
    * @param {number|Tab} tabOrIndex Index, or the Tab instance, of the tab to select.
    */
   @Method()
-  select(tabOrIndex: number | HTMLIonTabElement) {
+  select(tabOrIndex: number | HTMLIonTabElement): Promise<any> {
     const selectedTab = (typeof tabOrIndex === 'number' ? this.getByIndex(tabOrIndex) : tabOrIndex);
     if (!selectedTab) {
-      return;
+      return Promise.resolve();
     }
 
     // Reset rest of tabs
@@ -266,22 +267,27 @@ export class Tabs {
     selectedTab.selected = true;
 
     if (this.selectedTab === selectedTab) {
-      selectedTab.goToRoot();
+      return selectedTab.goToRoot();
     } else {
-      const promise = selectedTab._setActive(true);
-      const leavingTab = this.selectedTab;
-      if (leavingTab) {
-        promise.then(() => {
-          Context.dom.raf(() => {
-            leavingTab._setActive(false);
+      return new Promise((resolve) => {
+        const promise = selectedTab._setActive(true);
+        const leavingTab = this.selectedTab;
+        if (leavingTab) {
+          promise.then(() => {
+            Context.dom.raf(() => {
+              leavingTab._setActive(false);
+              this.ionChange.emit(selectedTab);
+              this.ionNavChanged.emit({ isPop: false });
+              resolve();
+            });
           });
-        });
-      }
-      this.selectedTab = selectedTab;
-      this.selectHistory.push(selectedTab.id);
-      this.ionChange.emit(selectedTab);
+        }
+        this.selectedTab = selectedTab;
+        this.selectHistory.push(selectedTab.id);
+      });
     }
   }
+
 
    /**
    * @param {number} index Index of the tab you want to get
@@ -358,9 +364,29 @@ export class Tabs {
   }
 
   @Method()
-  resize() {
-    const tab = this.getSelected();
-    tab && tab.resize();
+  getState(): NavState {
+    const selectedTab = this.getSelected();
+    if (!selectedTab) {
+      throw new Error('non selected tab');
+    }
+    const path = selectedTab.path;
+    if (!path) {
+      throw new Error('selected path does not have a path');
+    }
+    return {
+      segment: path,
+      focusNode: selectedTab
+    };
+  }
+
+  @Method()
+  setSegment(segment: string): Promise<NavState> {
+    const tab = this.tabs.find(t => t.path === segment);
+    if (tab) {
+      return this.select(tab).then(() => this.getState());
+    } else  {
+      return Promise.reject('route not found');
+    }
   }
 
   protected render() {
